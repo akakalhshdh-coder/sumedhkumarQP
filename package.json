@@ -1,0 +1,11 @@
+{
+  "name": "quant-pilot",
+  "private": true,
+  "version": "1.0.0",
+  "description": "QUANT PILOT by SumedhhKumar: seven-agent liquidity sweep trading desk (educational).",
+  "scripts": {
+    "start": "python run.py",
+    "test": ".venv\\Scripts\\python -m pytest -q",
+    "build": "npm --prefix frontend run build"
+  }
+}
