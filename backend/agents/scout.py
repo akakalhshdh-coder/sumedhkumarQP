@@ -18,6 +18,10 @@ class ScoutAgent(Agent):
             snap = svc.mt5.symbol_snapshot(ctx.instrument) or {}
             ctx.spread_points = float(snap.get("spread_points", 0.0))
             ctx.tick_value, ctx.tick_size = snap.get("tick_value"), snap.get("tick_size")
+        elif source == "kraken" and ctx.instrument == "BTCUSD" and svc.kraken.ready:
+            candles = svc.kraken.candles(ctx.instrument, 2500)
+            ctx.spread_points = svc.kraken.spread_points(ctx.instrument)
+            source = "kraken"
         else:
             source = "demo"
             candles = svc.feed.candles(ctx.instrument, 2500)

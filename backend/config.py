@@ -41,6 +41,7 @@ class Settings:
     """Immutable process settings. Runtime-editable rules live in core.risk.RiskRules."""
 
     demo_mode: bool = field(default_factory=lambda: _bool("DEMO_MODE", True))
+    data_source: str = field(default_factory=lambda: os.getenv("DATA_SOURCE", "demo").strip().lower())
     anthropic_api_key: str = field(default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", "").strip())
     anthropic_model: str = field(default_factory=lambda: os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5-5").strip())
     analyst_timeout_s: float = field(default_factory=lambda: _float("ANALYST_TIMEOUT_S", 30.0))
@@ -61,7 +62,7 @@ class Settings:
 
     def __repr__(self) -> str:  # never leak secrets
         return (
-            f"Settings(demo_mode={self.demo_mode}, model={self.anthropic_model}, "
+            f"Settings(demo_mode={self.demo_mode}, data_source={self.data_source}, model={self.anthropic_model}, "
             f"mt5_mode={self.mt5_mode}, mt5_server={self.mt5_server!r}, api_key_set={bool(self.anthropic_api_key)})"
         )
 

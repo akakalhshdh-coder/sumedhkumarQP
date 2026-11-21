@@ -19,10 +19,16 @@ export async function loadState(): Promise<void> {
     mt5Positions: ((d.mt5_sync as { positions: Mt5Position[] })?.positions ?? []),
     mt5Deals: ((d.mt5_sync as { deals: Mt5Deal[] })?.deals ?? []),
   });
+  // Kraken mode has no live gold feed: open on BTCUSD instead of the XAUUSD default.
+  if ((d.data_source as string) === "kraken" && S().instrument === "XAUUSD") S().set({ instrument: "BTCUSD" });
 }
 
 export async function loadCandles(instrument: Instrument): Promise<void> {
-  const d = await api<{ candles: Candle[]; last_cycle: CycleSummary | null }>(`/api/candles?instrument=${instrument}&n=500`);
+  const d = await api<{ ok?: boolean; message?: string; candles: Candle[]; last_cycle: CycleSummary | null }>(`/api/candles?instrument=${instrument}&n=500`);
+  if (!d.candles) {
+    S().pushToast({ level: "warning", title: "No live feed", message: d.message ?? `${instrument} has no data in this mode.` });
+    return;
+  }
   S().set({ candles: { ...S().candles, [instrument]: d.candles } });
 }
 
@@ -89,7 +95,8 @@ function handle(msg: Msg): void {
       break;
     case "mode":
       s.set({ mode: d.mode, dataSource: d.data_source, execution: d.execution, banner: null });
-      loadCandles(s.instrument).catch(() => undefined);
+      if (d.data_source === "kraken" && S().instrument === "XAUUSD") S().set({ instrument: "BTCUSD" });
+      loadCandles(S().instrument).catch(() => undefined);
       break;
     case "settings":
       s.set({ rules: d.rules, params: d.params });

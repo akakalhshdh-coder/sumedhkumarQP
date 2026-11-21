@@ -100,6 +100,10 @@ async def candles(instrument: str = "XAUUSD", n: int = 400) -> dict:
     n = max(50, min(n, 2000))
     if s.state.data_source == "mt5" and s.mt5.connected:
         data = await asyncio.to_thread(s.mt5.rates, instrument, "M5", n)
+    elif s.state.data_source == "kraken":
+        if instrument != "BTCUSD":
+            return {"ok": False, "message": "XAUUSD has no live feed yet — switch to Demo or wait for Gold."}
+        data = s.kraken.candles(instrument, n)
     else:
         data = s.feed.candles(instrument, n)
     return {"ok": True, "instrument": instrument, "candles": data, "last_cycle": s.state.last_cycle.get(instrument)}
@@ -137,6 +141,12 @@ async def set_mode(body: ModeBody) -> dict:
         if s.state.execution == "mt5":
             return {"ok": False, "message": "MT5 execution needs MT5 data. Switch execution to Paper first."}
         s.state.data_source = "demo"
+    elif body.data_source == "kraken":
+        if s.state.execution == "mt5":
+            return {"ok": False, "message": "MT5 execution needs MT5 data. Switch execution to Paper first."}
+        if not await asyncio.to_thread(s.ensure_kraken):
+            return {"ok": False, "message": "Kraken live data unavailable — check the connection and try again."}
+        s.state.data_source = "kraken"
     elif body.data_source == "mt5":
         if not s.mt5.connected:
             return {"ok": False, "message": "MT5 is not connected: staying on Demo data."}

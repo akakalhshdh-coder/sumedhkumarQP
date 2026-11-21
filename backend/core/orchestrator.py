@@ -16,6 +16,7 @@ from ..agents.chronicler import build_daily_review
 from ..config import INSTRUMENTS, Settings
 from .db import Database
 from .demo_data import DemoFeed
+from .kraken_feed import KrakenFeed
 from .events import EventHub
 from .indicators import session_for, session_info
 from .models import AgentStatus
@@ -29,7 +30,7 @@ log = logging.getLogger("quantpilot.orchestrator")
 
 @dataclass
 class RuntimeState:
-    data_source: str = "demo"  # demo | mt5
+    data_source: str = "demo"  # demo | mt5 | kraken
     execution: str = "paper"  # paper | mt5
     paused: bool = False
     scenario_until: float = 0.0
@@ -52,6 +53,8 @@ class Services:
         self.guardian_state = GuardianState()
         self.state = RuntimeState()
         self.feed = DemoFeed(INSTRUMENTS)
+        self.kraken = KrakenFeed()  # cheap to construct; seeded lazily on first kraken use
+        self._kraken_ready = False
         self.paper = PaperEngine(settings.starting_balance)
         self.mt5 = MT5Bridge(self.db, login=settings.mt5_login, password=settings.mt5_password, server=settings.mt5_server,
                              path=settings.mt5_path, magic=settings.mt5_magic, deviation=settings.mt5_deviation,
@@ -62,6 +65,14 @@ class Services:
                        ExecutionerAgent(), ChroniclerAgent()]
         self.trades_taken = 0
         self.last_prices: dict[str, float] = {}
+
+    def ensure_kraken(self) -> bool:
+        """Seed the Kraken feed on first use (sync; call via asyncio.to_thread)."""
+        if self._kraken_ready and self.kraken.ready:
+            return True
+        ok = self.kraken.seed()
+        self._kraken_ready = bool(ok)
+        return self._kraken_ready
 
     # ---------------------------------------------------------------- helpers used by agents
     def clock(self) -> float:
@@ -91,6 +102,8 @@ class Services:
     def last_price(self, instrument: str) -> float:
         if self.state.data_source == "demo":
             return self.feed.last_price(instrument)
+        if self.state.data_source == "kraken" and instrument == "BTCUSD" and self.kraken.ready:
+            return self.kraken.last_price(instrument)
         return self.last_prices.get(instrument) or self.feed.last_price(instrument)
 
     def toast(self, level: str, title: str, message: str) -> None:
@@ -109,6 +122,8 @@ class Services:
     def mode_label(self) -> str:
         if self.state.execution == "mt5":
             return "MT5 DEMO" if self.mt5.account_mode() == "DEMO" else "MT5 LIVE"
+        if self.state.data_source == "kraken":
+            return "LIVE · KRAKEN"
         return "PAPER" if self.state.data_source == "mt5" else "DEMO"
 
     def kpis(self) -> dict:
@@ -153,6 +168,11 @@ class Orchestrator:
             if not svc.settings.demo_mode:
                 svc.state.banner = svc.mt5.unavailable_reason()
             svc.mt5.health()
+        if svc.settings.data_source == "kraken" and svc.state.data_source == "demo":
+            if await asyncio.to_thread(svc.ensure_kraken):
+                svc.state.data_source = "kraken"
+            else:
+                svc.state.banner = "Kraken live data unavailable: running in Demo mode."
         self._reset_day(force=True)
         self._tasks = [asyncio.create_task(self._cycle_loop(), name="cycle"),
                        asyncio.create_task(self._mt5_health_loop(), name="mt5-health"),
@@ -258,6 +278,9 @@ class Orchestrator:
                         await asyncio.to_thread(self.run_pipeline, inst, 0.35)
                     svc.state.cycles += 1
                     await asyncio.sleep(0.9 if scenario else svc.settings.demo_cycle_seconds)
+                elif svc.state.data_source == "kraken":
+                    await self._kraken_cycle()
+                    await asyncio.sleep(20.0)
                 else:
                     await self._mt5_cycle()
                     await asyncio.sleep(2.0)
@@ -285,6 +308,26 @@ class Orchestrator:
             if last["time"] > svc.state.last_seen_bar.get(inst, 0):
                 svc.state.last_seen_bar[inst] = last["time"]
                 new[inst] = last
+        self._reset_day()
+        for inst, candle in new.items():
+            if svc.state.execution == "paper":
+                self._handle_paper_events(inst, svc.paper.on_candle(inst, candle))
+        if new:
+            self.broadcast_market(new)
+            for inst in new:
+                await asyncio.to_thread(self.run_pipeline, inst, 0.0)
+            svc.state.cycles += 1
+
+    async def _kraken_cycle(self) -> None:
+        svc = self.svc
+        if not svc.kraken.ready:
+            ok = await asyncio.to_thread(svc.ensure_kraken)
+            if not ok:
+                svc.state.data_source = "demo"
+                svc.state.banner = "Kraken live data unavailable: switched to Demo mode automatically."
+                svc.toast("error", "Kraken data lost", "Switched to Demo/Paper mode. Live data will be retried on the next mode switch.")
+                return
+        new = await asyncio.to_thread(svc.kraken.poll_new)
         self._reset_day()
         for inst, candle in new.items():
             if svc.state.execution == "paper":

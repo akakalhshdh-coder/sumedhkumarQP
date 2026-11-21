@@ -22,6 +22,7 @@ RUN cd frontend && npm run build
 
 ENV DEMO_MODE=true \
     MT5_MODE=demo_only \
+    DATA_SOURCE=kraken \
     PAPER_STARTING_BALANCE=10000 \
     PYTHONUNBUFFERED=1
 

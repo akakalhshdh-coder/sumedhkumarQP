@@ -11,3 +11,5 @@ services:
         value: demo_only
       - key: PAPER_STARTING_BALANCE
         value: "10000"
+      - key: DATA_SOURCE
+        value: kraken
