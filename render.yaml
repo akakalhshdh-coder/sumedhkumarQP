@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: quant-pilot
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: DEMO_MODE
+        value: "true"
+      - key: MT5_MODE
+        value: demo_only
+      - key: PAPER_STARTING_BALANCE
+        value: "10000"
