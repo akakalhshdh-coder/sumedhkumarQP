@@ -103,10 +103,11 @@ export interface Mt5LogRow {
 
 export interface SessionInfo { session: string; utc: string; ist: string; day_progress: number }
 
-/** Live timer: seconds since Dhaka midnight; resets at 00:00 Asia/Dhaka. */
+/** True uptime: seconds since the server process booted; resets to 0 only
+ *  on a server restart. No midnight reset, no 24h cap. */
 export interface LiveTimer {
-  live_seconds_today: number; // 0–86_399
-  resets_at: string; // ISO-8601 of the next Dhaka midnight, in UTC
+  uptime_seconds: number; // 0 and up, no cap
+  started_at: string; // ISO-8601 of the process boot, in UTC
   timezone: string; // "Asia/Dhaka"
 }
 

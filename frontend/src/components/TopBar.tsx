@@ -31,28 +31,28 @@ function fmtHMS(total: number): string {
   return `${h}h ${String(m).padStart(2, "0")}m ${String(sec).padStart(2, "0")}s`;
 }
 
-/** Live timer chip (kraken mode only): seconds since Dhaka midnight, ticking
- *  every second. Anchored on the API's live_seconds_today and re-anchored on
- *  every state load; the % 86_400 wrap makes the midnight reset automatic
- *  even if the tab stays open across 00:00 Asia/Dhaka. */
+/** Live timer chip (kraken mode only): true uptime — seconds since the
+ *  server process booted, ticking every second, growing without limit.
+ *  Anchored on the API's uptime_seconds and re-anchored on every state
+ *  load; a server restart resets the anchor to 0, honestly. */
 export function LiveTimerChip() {
   const liveTimer = useStore((s) => s.liveTimer);
   const dataSource = useStore((s) => s.dataSource);
   const [, setTick] = useState(0);
   const anchorRef = useRef<{ at: number; base: number } | null>(null);
   useEffect(() => {
-    if (liveTimer) anchorRef.current = { at: Date.now(), base: liveTimer.live_seconds_today };
+    if (liveTimer) anchorRef.current = { at: Date.now(), base: liveTimer.uptime_seconds };
   }, [liveTimer]);
   useEffect(() => {
     const id = window.setInterval(() => setTick((t) => t + 1), 1000);
     return () => window.clearInterval(id);
   }, []);
   if (dataSource !== "kraken" || !liveTimer || !anchorRef.current) return null;
-  const seconds = (anchorRef.current.base + (Date.now() - anchorRef.current.at) / 1000) % 86400;
+  const seconds = anchorRef.current.base + (Date.now() - anchorRef.current.at) / 1000;
   return (
     <span data-cursor="Live timer" className="chip whitespace-nowrap font-mono tracking-widest border-profit/60 text-emerald-200 bg-emerald-500/10">
       <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
-      <span className="hidden sm:inline">LIVE TODAY&nbsp;</span>{fmtHMS(seconds)}
+      <span className="hidden sm:inline">LIVE&nbsp;</span>{fmtHMS(seconds)}
     </span>
   );
 }

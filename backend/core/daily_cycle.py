@@ -1,44 +1,49 @@
-"""Live timer: seconds since Dhaka midnight, resetting at 00:00 Asia/Dhaka.
+"""True uptime timer: seconds since the server process booted.
 
-The model runs live 24/7 — there is no off hour and no pause. This module
-only answers "how long has today been live", so the desk can show a timer
-that counts up through the day and goes back to 00h 00m 00s at midnight.
+The desk shows how long THIS live run has lasted without a break. The
+counter starts at 0 when the server process starts and grows forever —
+there is no midnight reset, no 24-hour cap, no wrap, no off hour, no
+pause. A deploy or a server restart starts a fresh process, so the timer
+honestly goes back to 0: the number is only ever as old as the current
+run. (The earlier version counted seconds since Dhaka midnight, which
+read "12h" on a server that had been up for minutes — wrong, and the
+user caught it.)
+
+PROCESS_STARTED_AT is set at import time. The server imports this module
+at boot (backend/main.py imports it at the top), so import time is, for
+all practical purposes, boot time.
 
 Pure functions only (no I/O) so they are trivially testable.
-
-Note on timezones: Dhaka is UTC+6 year-round with no DST, so the offset is
-a fixed datetime.timezone(timedelta(hours=6)). No tzdata / zoneinfo
-dependency is needed, and the behaviour can never shift with a DST change.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
-# Fixed offset, no DST in Dhaka — see module docstring.
-DHAKA = timezone(timedelta(hours=6))
-
-DAY_SECONDS = 24 * 3600  # 86_400
+# Set once, when this module is first imported at server boot.
+PROCESS_STARTED_AT = datetime.now(timezone.utc)
 
 
-def live_state(now_utc: datetime) -> dict:
-    """Describe the live timer at a UTC instant.
+def uptime_state(now_utc: datetime, started_at: datetime | None = None) -> dict:
+    """Describe the true uptime at a UTC instant.
 
-    Returns {"live_seconds_today": int, "resets_at": str,
+    Returns {"uptime_seconds": int, "started_at": str,
     "timezone": "Asia/Dhaka"}.
 
-    live_seconds_today = seconds from Dhaka midnight to now (0-86_399).
-    resets_at = ISO-8601 of the next Dhaka midnight, in UTC.
-    A naive datetime is treated as UTC.
+    uptime_seconds = seconds from started_at to now, clamped at 0
+    (a started_at in the future reads as 0, never negative).
+    started_at defaults to PROCESS_STARTED_AT (this process's boot).
+    A naive datetime is treated as UTC. The value grows without limit.
     """
+    if started_at is None:
+        started_at = PROCESS_STARTED_AT
     if now_utc.tzinfo is None:
         now_utc = now_utc.replace(tzinfo=timezone.utc)
-    dhaka = now_utc.astimezone(DHAKA)
-    midnight = dhaka.replace(hour=0, minute=0, second=0, microsecond=0)
-    live_seconds = int((dhaka - midnight).total_seconds())
-    next_midnight = midnight + timedelta(days=1)
-    return {"live_seconds_today": live_seconds,
-            "resets_at": next_midnight.astimezone(timezone.utc).isoformat(),
+    if started_at.tzinfo is None:
+        started_at = started_at.replace(tzinfo=timezone.utc)
+    uptime = max(0, int((now_utc - started_at).total_seconds()))
+    return {"uptime_seconds": uptime,
+            "started_at": started_at.isoformat(),
             "timezone": "Asia/Dhaka"}
 
 
-__all__ = ["DHAKA", "DAY_SECONDS", "live_state"]
+__all__ = ["PROCESS_STARTED_AT", "uptime_state"]
