@@ -121,7 +121,7 @@ export function ChartView() {
       <Glass className="flex min-h-[360px] flex-[1.15] flex-col p-3" glow="none">
         <div className="mb-2 flex items-center gap-3">
           <InstrumentTabs />
-          <div className="text-xs text-slate-400">5M · {dataSource === "mt5" ? "MT5 live data" : "synthetic replay with planted sweeps"} · dotted lines are mapped liquidity pools</div>
+          <div className="text-xs text-slate-400">5M · {dataSource === "mt5" ? "MT5 live data" : dataSource === "kraken" ? "Kraken live data" : "synthetic replay with planted sweeps"} · dotted lines are mapped liquidity pools</div>
         </div>
         <div className="min-h-0 flex-1"><LiveChart /></div>
       </Glass>
