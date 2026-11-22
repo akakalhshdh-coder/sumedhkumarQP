@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Wordmark } from "./Logo";
 import { Magnetic } from "./Magnetic";
@@ -18,6 +19,40 @@ export function ModePill() {
     <span data-cursor="Mode" className={`chip font-mono tracking-widest ${MODE_STYLE[mode] ?? MODE_STYLE.DEMO}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${mode === "MT5 LIVE" ? "bg-white animate-pulse" : "bg-current"}`} />
       {mode}
+    </span>
+  );
+}
+
+function fmtHMS(total: number): string {
+  const s = Math.max(0, Math.floor(total));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${h}h ${String(m).padStart(2, "0")}m ${String(sec).padStart(2, "0")}s`;
+}
+
+/** Live timer chip (kraken mode only): seconds since Dhaka midnight, ticking
+ *  every second. Anchored on the API's live_seconds_today and re-anchored on
+ *  every state load; the % 86_400 wrap makes the midnight reset automatic
+ *  even if the tab stays open across 00:00 Asia/Dhaka. */
+export function LiveTimerChip() {
+  const liveTimer = useStore((s) => s.liveTimer);
+  const dataSource = useStore((s) => s.dataSource);
+  const [, setTick] = useState(0);
+  const anchorRef = useRef<{ at: number; base: number } | null>(null);
+  useEffect(() => {
+    if (liveTimer) anchorRef.current = { at: Date.now(), base: liveTimer.live_seconds_today };
+  }, [liveTimer]);
+  useEffect(() => {
+    const id = window.setInterval(() => setTick((t) => t + 1), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  if (dataSource !== "kraken" || !liveTimer || !anchorRef.current) return null;
+  const seconds = (anchorRef.current.base + (Date.now() - anchorRef.current.at) / 1000) % 86400;
+  return (
+    <span data-cursor="Live timer" className="chip font-mono tracking-widest border-profit/60 text-emerald-200 bg-emerald-500/10">
+      <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+      LIVE TODAY {fmtHMS(seconds)}
     </span>
   );
 }
@@ -82,10 +117,12 @@ export function TopBar() {
       <Wordmark compact />
       <div className="ml-2 hidden items-center gap-2 md:flex">
         <ModePill />
+        <LiveTimerChip />
         <span title={wsConnected ? "Live stream connected" : "Reconnecting"} className={`h-2 w-2 rounded-full ${wsConnected ? "bg-profit shadow-profit" : "bg-warn animate-pulse"}`} />
       </div>
       <div className="mx-auto hidden lg:block"><SessionBadge /></div>
       <div className="ml-auto flex items-center gap-2">
+        <span className="md:hidden"><LiveTimerChip /></span>
         <motion.button
           data-tour="scenario"
           data-cursor="Play"

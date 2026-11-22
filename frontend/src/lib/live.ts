@@ -1,7 +1,7 @@
 import { useStore } from "../store/useStore";
 import { api } from "./api";
 import { play } from "./sound";
-import type { AgentResult, Candle, CycleSummary, Instrument, Kpis, Mt5Deal, Mt5Health, Mt5LogRow, Mt5Position, SessionInfo } from "./types";
+import type { AgentResult, Candle, CycleSummary, Instrument, Kpis, LiveTimer, Mt5Deal, Mt5Health, Mt5LogRow, Mt5Position, SessionInfo } from "./types";
 import { SOCIAL_TOAST_KEY, safeStorage } from "../config/social";
 
 const S = () => useStore.getState();
@@ -12,6 +12,7 @@ export async function loadState(): Promise<void> {
   S().set({
     mode: d.mode as string, dataSource: d.data_source as string, execution: d.execution as string,
     banner: (d.banner as string) ?? null, analystMode: d.analyst_mode as string, model: d.model as string,
+    liveTimer: d.live_timer as LiveTimer | null,
     kpis: d.kpis as Kpis, positions: d.positions as never[], equity: d.equity_curve as never[],
     session: d.session as SessionInfo, rules: d.rules as never, params: d.params as never,
     mt5: d.mt5 as Mt5Health, confirmPhrase: d.confirm_phrase as string, mt5ModeEnv: d.mt5_mode_env as string,

@@ -103,6 +103,13 @@ export interface Mt5LogRow {
 
 export interface SessionInfo { session: string; utc: string; ist: string; day_progress: number }
 
+/** Live timer: seconds since Dhaka midnight; resets at 00:00 Asia/Dhaka. */
+export interface LiveTimer {
+  live_seconds_today: number; // 0–86_399
+  resets_at: string; // ISO-8601 of the next Dhaka midnight, in UTC
+  timezone: string; // "Asia/Dhaka"
+}
+
 export interface Rules {
   risk_per_trade_pct: number; max_risk_per_trade_pct: number; daily_drawdown_kill_pct: number; max_open_trades: number;
   min_rr: number; min_confidence: number; spread_limit_xau_points: number; spread_limit_btc_points: number;

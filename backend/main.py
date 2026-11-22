@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from .agents import PIPELINE_ORDER
 from .config import CONFIRM_PHRASE, INSTRUMENTS, settings
 from .core.backtest import run_backtest
+from .core.daily_cycle import live_state
 from .core.events import EventHub
 from .core.indicators import session_info
 from .core.orchestrator import Orchestrator, Services
@@ -73,7 +74,8 @@ async def health() -> dict:
     s = svc()
     return {"ok": True, "mode": s.mode_label(), "data_source": s.state.data_source, "execution": s.state.execution,
             "analyst": s.analyst.mode, "cycles": s.state.cycles, "ws_clients": len(hub.clients), "events_sent": hub.sent,
-            "mt5_available": s.mt5.available, "mt5_connected": s.mt5.connected, "time": datetime.now(timezone.utc).isoformat()}
+            "mt5_available": s.mt5.available, "mt5_connected": s.mt5.connected, "time": datetime.now(timezone.utc).isoformat(),
+            "live_timer": live_state(datetime.now(timezone.utc))}
 
 
 @app.get("/api/state")
@@ -89,6 +91,7 @@ async def state() -> dict:
         "rules": s.rules.to_dict(), "params": s.params.to_dict(),
         "mt5": s.mt5.last_health, "mt5_sync": s.state.mt5_sync, "confirm_phrase": CONFIRM_PHRASE,
         "kill_switch": s.guardian_state.kill_switch, "mt5_mode_env": settings.mt5_mode,
+        "live_timer": live_state(datetime.now(timezone.utc)),
     }
 
 

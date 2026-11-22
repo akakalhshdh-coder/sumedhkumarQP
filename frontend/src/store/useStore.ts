@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type {
-  AgentName, AgentResult, Candle, CycleSummary, Instrument, Kpis, Mt5Deal, Mt5Health, Mt5LogRow, Mt5Position,
+  AgentName, AgentResult, Candle, CycleSummary, Instrument, Kpis, LiveTimer, Mt5Deal, Mt5Health, Mt5LogRow, Mt5Position,
   PaperPosition, Params, Rules, SessionInfo, Toast, ViewId,
 } from "../lib/types";
 import { safeStorage } from "../config/social";
@@ -37,6 +37,7 @@ interface State {
   mode: string;
   dataSource: string;
   execution: string;
+  liveTimer: LiveTimer | null;
   banner: string | null;
   analystMode: string;
   model: string;
@@ -94,6 +95,7 @@ export const useStore = create<State>((set, get) => ({
   mode: "DEMO",
   dataSource: "demo",
   execution: "paper",
+  liveTimer: null,
   banner: null,
   analystMode: "mock",
   model: "",
