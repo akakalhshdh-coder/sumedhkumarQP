@@ -50,9 +50,9 @@ export function LiveTimerChip() {
   if (dataSource !== "kraken" || !liveTimer || !anchorRef.current) return null;
   const seconds = (anchorRef.current.base + (Date.now() - anchorRef.current.at) / 1000) % 86400;
   return (
-    <span data-cursor="Live timer" className="chip font-mono tracking-widest border-profit/60 text-emerald-200 bg-emerald-500/10">
+    <span data-cursor="Live timer" className="chip whitespace-nowrap font-mono tracking-widest border-profit/60 text-emerald-200 bg-emerald-500/10">
       <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
-      LIVE TODAY {fmtHMS(seconds)}
+      <span className="hidden sm:inline">LIVE TODAY&nbsp;</span>{fmtHMS(seconds)}
     </span>
   );
 }
