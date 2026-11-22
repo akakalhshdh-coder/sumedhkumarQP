@@ -42,11 +42,11 @@ function LiveChart() {
     if (!el.current) return;
     const c = createChart(el.current, {
       autoSize: true,
-      layout: { background: { color: "transparent" }, textColor: "#94a3b8", fontFamily: "JetBrains Mono", fontSize: 11 },
-      grid: { vertLines: { color: "rgba(255,255,255,.035)" }, horzLines: { color: "rgba(255,255,255,.035)" } },
-      rightPriceScale: { borderColor: "rgba(255,255,255,.08)" },
-      timeScale: { borderColor: "rgba(255,255,255,.08)", timeVisible: true, secondsVisible: false },
-      crosshair: { vertLine: { color: "rgba(34,211,238,.4)" }, horzLine: { color: "rgba(34,211,238,.4)" } },
+      layout: { background: { color: "#ffffff" }, textColor: "#334155", fontFamily: "JetBrains Mono", fontSize: 11 },
+      grid: { vertLines: { color: "rgba(15,23,42,.07)" }, horzLines: { color: "rgba(15,23,42,.07)" } },
+      rightPriceScale: { borderColor: "rgba(15,23,42,.2)" },
+      timeScale: { borderColor: "rgba(15,23,42,.2)", timeVisible: true, secondsVisible: false },
+      crosshair: { vertLine: { color: "rgba(8,145,178,.6)" }, horzLine: { color: "rgba(8,145,178,.6)" } },
     });
     series.current = c.addCandlestickSeries({
       upColor: "#10b981", downColor: "#f43f5e", wickUpColor: "#10b981", wickDownColor: "#f43f5e", borderVisible: false,
@@ -84,7 +84,7 @@ function LiveChart() {
     timers.current.forEach(clearTimeout);
     timers.current = [];
     cycle.levels.slice(-14).forEach((lv) => {
-      lines.current.push(s.createPriceLine({ price: lv.price, color: lv.side === "high" ? "rgba(34,211,238,.55)" : "rgba(167,139,250,.55)",
+      lines.current.push(s.createPriceLine({ price: lv.price, color: lv.side === "high" ? "rgba(8,145,178,.8)" : "rgba(124,58,237,.8)",
         lineWidth: 1, lineStyle: LineStyle.Dotted, axisLabelVisible: false, title: lv.name }));
     });
     const st = cycle.setup;
@@ -94,10 +94,10 @@ function LiveChart() {
       markers.push({ time: st.confirm_time as UTCTimestamp, position: st.direction === "SHORT" ? "aboveBar" : "belowBar", color: "#fbbf24",
         shape: st.direction === "SHORT" ? "arrowDown" : "arrowUp", text: `${st.direction} ${cycle.outcome === "taken" ? "✓" : cycle.outcome}` });
       const ladder = [
-        { price: st.entry_price, color: "#22d3ee", title: "ENTRY", style: LineStyle.Solid },
+        { price: st.entry_price, color: "#0891b2", title: "ENTRY", style: LineStyle.Solid },
         { price: st.stop_loss, color: "#f43f5e", title: "SL", style: LineStyle.Dashed },
         { price: st.take_profit_1, color: "#10b981", title: "TP1", style: LineStyle.Dashed },
-        { price: st.take_profit_2, color: "#34d399", title: "TP2", style: LineStyle.Dashed },
+        { price: st.take_profit_2, color: "#059669", title: "TP2", style: LineStyle.Dashed },
       ];
       ladder.forEach((l, i) => {
         timers.current.push(window.setTimeout(() => {
@@ -118,14 +118,14 @@ export function ChartView() {
   const dataSource = useStore((s) => s.dataSource);
   return (
     <div className="flex h-full flex-col gap-3">
-      <Glass className="flex min-h-[360px] flex-[1.15] flex-col p-3" glow="none">
+      <Glass className="flex min-h-[500px] flex-[1.6] flex-col p-3" glow="none">
         <div className="mb-2 flex items-center gap-3">
           <InstrumentTabs />
           <div className="text-xs text-slate-400">5M · {dataSource === "mt5" ? "MT5 live data" : dataSource === "kraken" ? "Kraken live data" : "synthetic replay with planted sweeps"} · dotted lines are mapped liquidity pools</div>
         </div>
         <div className="min-h-0 flex-1"><LiveChart /></div>
       </Glass>
-      <SweepVisualizer setup={cycle?.setup} candles={candles} height={270} />
+      <SweepVisualizer setup={cycle?.setup} candles={candles} height={180} />
     </div>
   );
 }
